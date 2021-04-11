@@ -1,4 +1,11 @@
 
+// TODO: Add OTA.
+// TODO: Add settings in FS.
+// TODO: Add WEB server for configuration.
+// TODO: Add WEB API for remote controlling.
+// TODO: Add IR remote controll.
+// TODO: Add IR training button for the separate commands.
+
 #pragma region Headers
 
 #include <Wire.h>
