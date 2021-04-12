@@ -1,6 +1,6 @@
 
-// TODO: Add OTA.
 // TODO: Add settings in FS.
+// TODO: Add OTA.
 // TODO: Add WEB server for configuration.
 // TODO: Add WEB API for remote controlling.
 // TODO: Add IR remote controll.
@@ -26,9 +26,9 @@
 
 #include <WiFi.h>
 
-#include <ESPmDNS.h>
+#include <WiFiAP.h>
 
-#include <WiFiUdp.h>
+#include <ESPmDNS.h>
 
 #include <ArduinoOTA.h>
 
@@ -159,6 +159,38 @@ bool DisplayFlag_g;
  * 
  */
 String TextVolume_g;
+
+/**
+ * @brief Station mode SSID.
+ * 
+ */
+#ifdef DEFAULT_SSID
+const char* SSID_STA_g = DEFAULT_SSID;
+#else
+const char* SSID_STA_g = "WuoyrWiFiSSID";
+#endif
+
+/**
+ * @brief Station mode password.
+ * 
+ */
+#ifdef DEFAULT_PASS
+const char* PASS_STA_g = DEFAULT_PASS;
+#else
+const char* PASS_STA_g = "WourWiFiPassword";
+#endif
+
+/**
+ * @brief Access point mode SSID.
+ * 
+ */
+String SSID_AP_g = "TEST_AP_NAME";
+
+/**
+ * @brief Access point mode password.
+ * 
+ */
+String PASS_AP_g = "12345678";
 
 #pragma endregion
 
@@ -307,6 +339,54 @@ void setup_io()
 
     Serial.begin(9600);
     Serial.println("\n\nAnalog switch.");
+}
+
+/**
+ * @brief Setup the WiFi.
+ * 
+ */
+void setup_wifi()
+{
+    int NetworksCountL = 0;
+    String SSIDL = "";
+    wifi_mode_t WiFiL = WIFI_AP;
+
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+
+    // Get the count of al found networks.
+    NetworksCountL = WiFi.scanNetworks();
+
+    // If no network found move to AP mode.
+    if (NetworksCountL > 0)
+    {
+        for (int i = 0; i < NetworksCountL; ++i)
+        {
+            SSIDL = WiFi.SSID(i);
+            if ((const String)SSID_STA_g == SSIDL)
+            {
+                WiFiL = WIFI_STA;
+            }
+        }
+    }
+
+
+    // STA mode.
+    if (WiFiL == WIFI_STA)
+    {
+        WiFi.mode(WIFI_STA);
+        WiFi.begin(SSID_STA_g, PASS_STA_g);
+        while (WiFi.waitForConnectResult() != WL_CONNECTED)
+        {
+            WiFiL = WIFI_AP;
+        }
+    }
+
+    // AP mode.
+    else if (WiFiL == WIFI_AP)
+    {
+        WiFi.softAP(SSID_AP_g.c_str(), PASS_AP_g.c_str());
+    }
 }
 
 /**
