@@ -8,6 +8,12 @@
 
 #pragma region Headers
 
+#include "ApplicationConfiguration.h"
+
+#include "DefaultCredentials.h"
+
+#include "VolumeAction.h"
+
 #include <Wire.h>
 
 #include <Adafruit_GFX.h>
@@ -18,18 +24,13 @@
 
 #include <Button.h>
 
-#include "ApplicationConfiguration.h"
+#include <WiFi.h>
 
-#pragma endregion
+#include <ESPmDNS.h>
 
-#pragma region Enums
+#include <WiFiUdp.h>
 
-enum VolumeAction : uint8_t
-{
-    Nothing,
-    Up,
-    Down
-};
+#include <ArduinoOTA.h>
 
 #pragma endregion
 
