@@ -125,13 +125,13 @@ PT2257 Pot_g;
  * @brief Volume action.
  * 
  */
-VolumeAction VolAct_g;
+VolumeAction_t VolAct_g;
 
 /**
  * @brief Last volume action.
  * 
  */
-VolumeAction LastVolAct_g;
+VolumeAction_t LastVolAct_g;
 
 /**
  * @brief Volume value.
@@ -271,11 +271,11 @@ void setup_variables()
     CurrentTime_g = 0;
     OutputChannel_g = 0;
     LastOutputChannel_g = 0;
-    LastVolAct_g = VolumeAction::Nothing;
-    VolAct_g = VolumeAction::Nothing;
+    LastVolAct_g = VolumeAction_t::Nothing;
+    VolAct_g = VolumeAction_t::Nothing;
     VolumeValue_g = 50;
     DisplayFlag_g = false;
-    TextChannel_g = "";
+    // TextChannel_g = "";
     TextVolume_g = "";
 }
 
@@ -373,18 +373,18 @@ void update_buttons()
     }
     else if (BtnVolDn_g.pressed())
     {
-        VolAct_g = VolumeAction::Down;
+        VolAct_g = VolumeAction_t::Down;
     }
     else if (BtnVolUp_g.pressed())
     {
-        VolAct_g = VolumeAction::Up;
+        VolAct_g = VolumeAction_t::Up;
     }
 
     if (BtnVolDn_g.toggled())
     {
         if (BtnVolDn_g.read() == Button::PRESSED)
         {
-            VolAct_g = VolumeAction::Down;
+            VolAct_g = VolumeAction_t::Down;
         }
     }
 
@@ -392,13 +392,13 @@ void update_buttons()
     {
         if (BtnVolUp_g.read() == Button::PRESSED)
         {
-            VolAct_g = VolumeAction::Down;
+            VolAct_g = VolumeAction_t::Down;
         }
     }
 
     // Display update action.
     DisplayFlag_g = 
-        (VolAct_g != VolumeAction::Nothing) ||
+        (VolAct_g != VolumeAction_t::Nothing) ||
         (OutputChannel_g != LastOutputChannel_g);
 }
 
@@ -462,7 +462,7 @@ void update_volume()
     if (VolAct_g != LastVolAct_g)
     {
         // Increse volume.
-        if (VolAct_g == VolumeAction::Up)
+        if (VolAct_g == VolumeAction_t::Up)
         {
             VolumeValue_g++;
             if (VolumeValue_g > MAX_VOL_VAL)
@@ -472,7 +472,7 @@ void update_volume()
         }
 
         // Decrece volume.
-        else if (VolAct_g == VolumeAction::Down)
+        else if (VolAct_g == VolumeAction_t::Down)
         {
             VolumeValue_g--;
             if (VolumeValue_g < MIN_VOL_VAL)
@@ -484,7 +484,7 @@ void update_volume()
         set_volume(VolumeValue_g);
 
         LastVolAct_g = VolAct_g;
-        VolAct_g = VolumeAction::Nothing;
+        VolAct_g = VolumeAction_t::Nothing;
     }
 }
 

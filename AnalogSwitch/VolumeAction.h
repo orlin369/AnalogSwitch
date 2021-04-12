@@ -1,6 +1,6 @@
 
-#ifndef _APPLICATIONCONFIGURATION_h
-#define _APPLICATIONCONFIGURATION_h
+#ifndef _VOLUMEACTION_h
+#define _VOLUMEACTION_h
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
@@ -14,7 +14,7 @@
  * @brief Volume action.
  * 
  */
-enum VolumeAction : uint8_t
+enum VolumeAction_t : uint8_t
 {
     Nothing, ///< Nothing
     Up, ///< Increase volume.
