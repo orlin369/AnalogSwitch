@@ -10,27 +10,35 @@
 
 #include "ApplicationConfiguration.h"
 
+#include "DeviceConfiguration.h"
+
 #include "DefaultCredentials.h"
 
 #include "VolumeAction.h"
 
-#include <Wire.h>
 
 #include <Adafruit_GFX.h>
 
 #include <Adafruit_SSD1306.h>
 
-#include "pt2257.h"
+#include <pt2257.h>
 
 #include <Button.h>
+
+
+#include <Wire.h>
 
 #include <WiFi.h>
 
 #include <WiFiAP.h>
 
-#include <ESPmDNS.h>
+#include "FS.h"
 
-#include <ArduinoOTA.h>
+#include "SPIFFS.h"
+
+// #include <ESPmDNS.h>
+
+// #include <ArduinoOTA.h>
 
 #pragma endregion
 
@@ -339,6 +347,11 @@ void setup_io()
 
     Serial.begin(9600);
     Serial.println("\n\nAnalog switch.");
+}
+
+void setup_fs()
+{
+
 }
 
 /**

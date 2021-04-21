@@ -8,6 +8,37 @@
 	#include "WProgram.h"
 #endif
 
+/** @brief Show functions names. */
+#define SHOW_FUNC_NAMES
+
+#pragma region Device Configuration
+
+/** @brief Default STA SSID. */
+#define DEAFULT_USER "admin"
+
+/** @brief Default STA password. */
+#define DEAFULT_PASS "admin"
+
+#define DEFAULT_CHANEL_INDEX 1
+
+#pragma endregion
+
+#pragma region Debug Terminal Configuration
+
+/** @brief Switch the logging terminal. */
+#define DEBUGLOG SERIALLOG
+
+/** @brief Debug output port. */
+#define DBG_OUTPUT_PORT Serial1 // Serial1 // on D4
+
+/** @brief Debug output port baud rate. */
+#define DBG_OUTPUT_PORT_BAUDRATE 115200
+
+#ifndef DEBUGLOG
+#define DEBUGLOG(...)
+#endif // !DEBUGLOG
+
+#pragma endregion
 
 #pragma region Status LED
 
