@@ -1,6 +1,4 @@
 
-// TODO: Add settings in FS.
-// TODO: Add OTA.
 // TODO: Add WEB server for configuration.
 // TODO: Add WEB API for remote controlling.
 // TODO: Add IR remote controll.
@@ -10,11 +8,17 @@
 
 #include "ApplicationConfiguration.h"
 
+#include "DebugPort.h"
+
+#include "GeneralHelper.h"
+
 #include "DeviceConfiguration.h"
 
 #include "DefaultCredentials.h"
 
 #include "VolumeAction.h"
+
+#include "NetworkConfiguration.h"
 
 
 #include <Adafruit_GFX.h>
@@ -38,7 +42,7 @@
 
 // #include <ESPmDNS.h>
 
-// #include <ArduinoOTA.h>
+#include <ArduinoOTA.h>
 
 #pragma endregion
 
@@ -66,13 +70,13 @@ unsigned long CurrentTime_g;
  * @brief Output chanel.
  * 
  */
-uint8_t OutputChannel_g;
+uint8_t ChannelIndex_g;
 
 /**
  * @brief Last state of the output channel.
  * 
  */
-uint8_t LastOutputChannel_g;
+uint8_t LastChannelIndex_g;
 
 /**
  * @brief Button for input 1.
@@ -182,10 +186,10 @@ const char* SSID_STA_g = "WuoyrWiFiSSID";
  * @brief Station mode password.
  * 
  */
-#ifdef DEFAULT_PASS
-const char* PASS_STA_g = DEFAULT_PASS;
+#ifdef DEFAULT_STA_PASSWORD
+const char* PASS_STA_g = DEFAULT_STA_PASSWORD;
 #else
-const char* PASS_STA_g = "WourWiFiPassword";
+const char* PASS_STA_g = "YourWiFiPassword";
 #endif
 
 /**
@@ -276,6 +280,22 @@ void update_display();
 
 void setup()
 {
+    setup_debug_port();
+
+    setup_fs();
+
+	// Try to load configuration from file system. Load defaults if any error.
+	if (!load_network_configuration(&SPIFFS, CONFIG_NET))
+	{
+		save_network_configuration(&SPIFFS, CONFIG_NET);
+	}
+
+	// Load HTTP authorization. Load defaults if any error.
+	if (!load_device_config(&SPIFFS, CONFIG_DEVICE))
+	{
+		save_device_config(&SPIFFS, CONFIG_DEVICE);
+	}
+
     setup_variables();
 
     setup_io();
@@ -283,6 +303,8 @@ void setup()
     setup_pot();
 
     setup_display();
+
+    setup_wifi();
 }
 
 void loop()
@@ -296,35 +318,110 @@ void loop()
     update_status_led();
 
     update_display();
+
+    ArduinoOTA.handle();
 }
 
 #pragma region Functions
 
 /**
+ * @brief Configure the file system.
+ * 
+ */
+void setup_fs() {
+#ifdef SHOW_FUNC_NAMES
+	DEBUGLOG("\r\n");
+	DEBUGLOG(__PRETTY_FUNCTION__);
+	DEBUGLOG("\r\n");
+#endif // SHOW_FUNC_NAMES
+
+	if (!SPIFFS.begin())
+	{
+		DEBUGLOG("Can not load file system.\r\n");
+
+		for (;;) {
+#ifdef ESP32
+// ESP32
+
+#elif defined(ESP8266)
+// ESP8266
+			ESP.wdtFeed();
+#endif
+		}
+	}
+
+#ifdef DEBUGLOG
+#ifdef ESP32
+// ESP32
+	File root = SPIFFS.open("/");
+	File file = root.openNextFile();
+	while(file)
+	{
+		DEBUGLOG("File: %s, size: %s\r\n", file.name(), formatBytes(file.size()).c_str()); 
+		file = root.openNextFile();
+	}
+
+#elif defined(ESP8266)
+// ESP8266
+	// List files
+	Dir dir = SPIFFS.openDir("/");
+	while (dir.next())
+	{
+		String fileName = dir.fileName();
+		size_t fileSize = dir.fileSize();
+		DEBUGLOG("File: %s, size: %s\r\n", fileName.c_str(), formatBytes(fileSize).c_str());
+	}
+
+#endif
+
+	DEBUGLOG("\r\n");
+#endif // DEBUGLOG
+}
+
+/**
  * @brief Setup the variables objects.
  * 
  */
-void setup_variables()
-{
+void setup_variables() {
+#ifdef SHOW_FUNC_NAMES
+	DEBUGLOG("\r\n");
+	DEBUGLOG(__PRETTY_FUNCTION__);
+	DEBUGLOG("\r\n");
+#endif // SHOW_FUNC_NAMES
+
+    // Status LED.
     StatusLEDState_g = LOW;
+    
+    // Update loop timing.
     PreviousTime_g = 0;
     CurrentTime_g = 0;
-    OutputChannel_g = 0;
-    LastOutputChannel_g = 0;
+    
+    // User IO.
+    ChannelIndex_g = DeviceConfiguration.ChannelIndex;
+    LastChannelIndex_g = 255;
     LastVolAct_g = VolumeAction_t::Nothing;
     VolAct_g = VolumeAction_t::Nothing;
-    VolumeValue_g = 50;
+    VolumeValue_g = DeviceConfiguration.Volume;
     DisplayFlag_g = false;
     // TextChannel_g = "";
     TextVolume_g = "";
+
+    // Wi-Fi setup.    
+    SSID_STA_g = NetworkConfiguration.SSID.c_str();
+    PASS_STA_g = NetworkConfiguration.Password.c_str();
 }
 
 /**
  * @brief Set the GPIOs.
  * 
  */
-void setup_io()
-{
+void setup_io() {
+#ifdef SHOW_FUNC_NAMES
+	DEBUGLOG("\r\n");
+	DEBUGLOG(__PRETTY_FUNCTION__);
+	DEBUGLOG("\r\n");
+#endif // SHOW_FUNC_NAMES
+
     pinMode(PIN_REL_IN1, OUTPUT);
     pinMode(PIN_REL_IN2, OUTPUT);
     pinMode(PIN_REL_IN3, OUTPUT);
@@ -344,22 +441,19 @@ void setup_io()
     BtnLearn_g.begin();
     BtnVolDn_g.begin();
     BtnVolUp_g.begin();
-
-    Serial.begin(9600);
-    Serial.println("\n\nAnalog switch.");
-}
-
-void setup_fs()
-{
-
 }
 
 /**
  * @brief Setup the WiFi.
  * 
  */
-void setup_wifi()
-{
+void setup_wifi() {
+#ifdef SHOW_FUNC_NAMES
+	DEBUGLOG("\r\n");
+	DEBUGLOG(__PRETTY_FUNCTION__);
+	DEBUGLOG("\r\n");
+#endif // SHOW_FUNC_NAMES
+
     int NetworksCountL = 0;
     String SSIDL = "";
     wifi_mode_t WiFiL = WIFI_AP;
@@ -383,7 +477,6 @@ void setup_wifi()
         }
     }
 
-
     // STA mode.
     if (WiFiL == WIFI_STA)
     {
@@ -402,12 +495,66 @@ void setup_wifi()
     }
 }
 
+void setup_arduino_ota() {
+#ifdef SHOW_FUNC_NAMES
+	DEBUGLOG("\r\n");
+	DEBUGLOG(__PRETTY_FUNCTION__);
+	DEBUGLOG("\r\n");
+#endif // SHOW_FUNC_NAMES
+
+	// Port defaults to 3232
+	// ArduinoOTA.setPort(3232);
+
+	// Hostname defaults to esp3232-[MAC]
+	// ArduinoOTA.setHostname("myesp32");
+
+	// No authentication by default
+	// ArduinoOTA.setPassword("admin");
+
+	// Password can be set with it's md5 value as well
+	// MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
+	// ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
+
+	ArduinoOTA
+		.onStart([]() {
+			String type;
+			if (ArduinoOTA.getCommand() == U_FLASH)
+				type = "sketch";
+			else // U_SPIFFS
+				type = "filesystem";
+
+			// NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+			DEBUGLOG("Start updating " + type + "\r\n");
+		})
+		.onEnd([]() {
+			DEBUGLOG("\r\nEnd");
+		})
+		.onProgress([](unsigned int progress, unsigned int total) {
+			DEBUGLOG("Progress: %u%%\r\n", (progress / (total / 100)));
+		})
+		.onError([](ota_error_t error) {
+			DEBUGLOG("Error[%u]: ", error);
+			if (error == OTA_AUTH_ERROR) DEBUGLOG("Auth Failed\r\n");
+			else if (error == OTA_BEGIN_ERROR) DEBUGLOG("Begin Failed\r\n");
+			else if (error == OTA_CONNECT_ERROR) DEBUGLOG("Connect Failed\r\n");
+			else if (error == OTA_RECEIVE_ERROR) DEBUGLOG("Receive Failed\r\n");
+			else if (error == OTA_END_ERROR) DEBUGLOG("End Failed\r\n");
+		});
+
+	ArduinoOTA.begin();
+}
+
 /**
  * @brief Setup the potentiometer.
  * 
  */
-void setup_pot()
-{
+void setup_pot() {
+#ifdef SHOW_FUNC_NAMES
+	DEBUGLOG("\r\n");
+	DEBUGLOG(__PRETTY_FUNCTION__);
+	DEBUGLOG("\r\n");
+#endif // SHOW_FUNC_NAMES
+
     Pot_g.init();
     set_volume(VolumeValue_g);
 }
@@ -416,22 +563,26 @@ void setup_pot()
  * @brief Setup the display.
  * 
  */
-void setup_display()
-{ 
-  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  if(!Display_g.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
-  {
-    Serial.println(F("SSD1306 allocation failed"));
-    for(;;); // Don't proceed, loop forever
-  }
-
-  // Show initial display buffer contents on the screen --
-  // the library initializes this with an Adafruit splash screen.
-  Display_g.display();
-  //delay(2000); // Pause for 2 seconds
-
-  // Clear the buffer
-  Display_g.clearDisplay();
+void setup_display() {
+#ifdef SHOW_FUNC_NAMES
+	DEBUGLOG("\r\n");
+	DEBUGLOG(__PRETTY_FUNCTION__);
+	DEBUGLOG("\r\n");
+#endif // SHOW_FUNC_NAMES
+    
+    // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+    if(!Display_g.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
+    {
+        DEBUGLOG("SSD1306 allocation failed");
+        for(;;); // Don't proceed, loop forever
+    }
+    
+    // Show initial display buffer contents on the screen --
+    // the library initializes this with an Adafruit splash screen.
+    Display_g.display();
+    
+    // Clear the buffer
+    Display_g.clearDisplay();
 }
 
 /**
@@ -443,26 +594,26 @@ void update_buttons()
     if (BtnIn1_g.pressed())
     {
         // Set the chanel.
-        OutputChannel_g = 1;
+        ChannelIndex_g = 1;
     }
     else if (BtnIn2_g.pressed())
     {
         // Set the chanel.
-        OutputChannel_g = 2;
+        ChannelIndex_g = 2;
     }
     else if (BtnIn3_g.pressed())
     {
         // Set the chanel.
-        OutputChannel_g = 3;
+        ChannelIndex_g = 3;
     }
     else if (BtnIn4_g.pressed())
     {
         // Set the chanel.
-        OutputChannel_g = 4;
+        ChannelIndex_g = 4;
     }
     else if (BtnLearn_g.pressed())
     {
-        Serial.println("Learn clicked");
+        DEBUGLOG("Learn clicked\r\n");
     }
     else if (BtnVolDn_g.pressed())
     {
@@ -492,7 +643,7 @@ void update_buttons()
     // Display update action.
     DisplayFlag_g = 
         (VolAct_g != VolumeAction_t::Nothing) ||
-        (OutputChannel_g != LastOutputChannel_g);
+        (ChannelIndex_g != LastChannelIndex_g);
 }
 
 /**
@@ -501,10 +652,12 @@ void update_buttons()
  */
 void update_channel()
 {
-    if (OutputChannel_g != LastOutputChannel_g)
+    if (ChannelIndex_g != LastChannelIndex_g)
     {
-        set_channel(OutputChannel_g);
-        LastOutputChannel_g = OutputChannel_g;
+        set_channel(ChannelIndex_g);
+        LastChannelIndex_g = ChannelIndex_g;
+        DeviceConfiguration.ChannelIndex = ChannelIndex_g;
+        save_device_config(&SPIFFS, CONFIG_DEVICE);
     }
 }
 
@@ -513,8 +666,13 @@ void update_channel()
  * 
  * @param channel Chanel index.
  */
-void set_channel(uint8_t channel)
-{
+void set_channel(uint8_t channel) {
+#ifdef SHOW_FUNC_NAMES
+	DEBUGLOG("\r\n");
+	DEBUGLOG(__PRETTY_FUNCTION__);
+	DEBUGLOG("\r\n");
+#endif // SHOW_FUNC_NAMES
+
     // 1. Set the volume to 0.
     set_volume(MIN_VOL_VAL);
 
@@ -578,6 +736,9 @@ void update_volume()
 
         LastVolAct_g = VolAct_g;
         VolAct_g = VolumeAction_t::Nothing;
+        
+        DeviceConfiguration.Volume = VolumeValue_g;
+        save_device_config(&SPIFFS, CONFIG_DEVICE);
     }
 }
 
@@ -586,8 +747,13 @@ void update_volume()
  * 
  * @param volume Volume index.
  */
-void set_volume(uint8_t  volume)
-{
+void set_volume(uint8_t  volume) {
+#ifdef SHOW_FUNC_NAMES
+	DEBUGLOG("\r\n");
+	DEBUGLOG(__PRETTY_FUNCTION__);
+	DEBUGLOG("\r\n");
+#endif // SHOW_FUNC_NAMES
+
     // Scale the pot value.
     uint8_t PotValL = (uint8_t)map(volume, MIN_VOL_VAL, MAX_VOL_VAL, MIN_POT_VAL, MAX_POT_VAL);
 
@@ -635,7 +801,7 @@ void update_display()
     }
     DisplayFlag_g = false;
 
-    // TextChannel_g = String(OutputChannel_g);
+    // TextChannel_g = String(ChannelIndex_g);
     TextVolume_g = String(VolumeValue_g);
 
     Display_g.clearDisplay();
@@ -647,7 +813,7 @@ void update_display()
     // Display_g.setCursor(65, 2)
     // Display_g.print(TextChannel_g);
 
-    if (OutputChannel_g == 1)
+    if (ChannelIndex_g == 1)
     {
         Display_g.fillRect(RECT_X_CH1, RECT_Y_CH1, RECT_W_CH, RECT_H_CH, SSD1306_INVERSE);
     }
@@ -656,7 +822,7 @@ void update_display()
         Display_g.drawRect(RECT_X_CH1, RECT_Y_CH1, RECT_W_CH, RECT_H_CH, SSD1306_WHITE);
     }
     
-    if (OutputChannel_g == 2)
+    if (ChannelIndex_g == 2)
     {
         Display_g.fillRect(RECT_X_CH2, RECT_Y_CH2, RECT_W_CH, RECT_H_CH, SSD1306_INVERSE);
     }
@@ -665,7 +831,7 @@ void update_display()
         Display_g.drawRect(RECT_X_CH2, RECT_Y_CH2, RECT_W_CH, RECT_H_CH, SSD1306_WHITE);
     }
 
-    if (OutputChannel_g == 3)
+    if (ChannelIndex_g == 3)
     {
         Display_g.fillRect(RECT_X_CH3, RECT_Y_CH3, RECT_W_CH, RECT_H_CH, SSD1306_INVERSE);
     }
@@ -674,7 +840,7 @@ void update_display()
         Display_g.drawRect(RECT_X_CH3, RECT_Y_CH3, RECT_W_CH, RECT_H_CH, SSD1306_WHITE);
     }
 
-    if (OutputChannel_g == 4)
+    if (ChannelIndex_g == 4)
     {
         Display_g.fillRect(RECT_X_CH4, RECT_Y_CH4, RECT_W_CH, RECT_H_CH, SSD1306_INVERSE);
     }

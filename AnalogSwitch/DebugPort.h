@@ -39,10 +39,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma region Definitions
 
-#ifdef SERIALLOG
-#define SERIALLOG(...)
+#ifdef DEBUGLOG
+#define DEBUGLOG(...)
 #else
-#define SERIALLOG(...) DBG_OUTPUT_PORT.printf(__VA_ARGS__)
+#define DEBUGLOG(...) DBG_OUTPUT_PORT.printf(__VA_ARGS__)
 #endif
 
 #pragma endregion

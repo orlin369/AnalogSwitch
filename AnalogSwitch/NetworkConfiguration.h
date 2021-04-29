@@ -19,10 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-// DeviceConfiguration.h
+// NetworkConfiguration.h
 
-#ifndef _DEVICECONFIGURATION_H
-#define _DEVICECONFIGURATION_H
+#ifndef _DEVICECONFIGURATION_h
+#define _DEVICECONFIGURATION_h
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
@@ -32,10 +32,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma region Definitions
 
-#ifndef CONFIG_DEVICE
-/* @brief Device configuration file. */
-#define CONFIG_DEVICE "/config.json"
-#endif // !CONFIG_DEVICE
+#ifndef CONFIG_NET
+/* @brief Network configuration file. */
+#define CONFIG_NET "/network.json"
+#endif // !CONFIG_NET
 
 #pragma endregion
 
@@ -47,45 +47,56 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <FS.h>
 
+#include "IPAddress.h"
+
 #include <ArduinoJson.h>
 
 #pragma endregion
 
 #pragma region Structures
 
-/** @brief Device configuration structure.
+/** @brief Device configuration structure
  *  @author Orlin Dimitrov <orlin369@gmail.com>
  *  @version 1.0
  *
  *  Device configuration structure, it hold configuration parameters values.
  */
 typedef struct {
-	String Username = DEAFULT_USER; ///< User name. Set default value.
-	String Password = DEAFULT_PASS; ///< Password. Set default value.
-	uint8_t ChannelIndex = DEFAULT_CHANEL_INDEX; ///< Default chanel index.
-	uint8_t Volume = DEFAULT_VOLUME; ///< Default volume.
-} DeviceConfiguration_t;
+    String Hostname = DEVICE_BRAND; ///< Host name.
+    String SSID; ///< SSID of the near AP.
+	String Password; ///< Password of the near AP.
+	IPAddress  IP; ///< Local IP address.
+	IPAddress  NetMask; ///< Local network mask.
+	IPAddress  Gateway; ///< Local gateway.
+	IPAddress  DNS; ///< Local DNS.
+	bool DHCP; ///< DHCP enable flag.
+} NetworkConfiguration_t;
 
 #pragma endregion
 
-#pragma region Prototypes
+#pragma region Functions
 
-/** @brief Load HTTP authentication.
+/** @brief Load configuration.
+ *  @param fileSystem FS, File system of the device.
  *  @return boolean, Successful loading.
  */
-bool load_device_config(FS* fileSystem, const char* path);
+bool load_network_configuration(FS* fileSystem, const char* path);
 
-/** @brief Save authentication data.
- *  @return boolean, Return true if successful.
+/** @brief Save configuration.
+ *  @param fileSystem FS, File system of the device.
+ *  @return boolean, Successful saving.
  */
-bool save_device_config(FS* fileSystem, const char* path);
+bool save_network_configuration(FS* fileSystem, const char* path);
 
-bool set_default_device_config();
+/** @brief Default configuration.
+ *  @return Void
+ */
+void set_default_network_configuration();
 
 #pragma endregion
 
-/* @brief Singelton HTTP Authentication instance. */
-extern DeviceConfiguration_t DeviceConfiguration;
+/* @brief Singelton device configuration instance. */
+extern NetworkConfiguration_t NetworkConfiguration;
 
-#endif // _DEVICECONFIGURATION_H
+#endif
 

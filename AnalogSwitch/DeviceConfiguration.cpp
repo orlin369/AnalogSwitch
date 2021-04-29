@@ -75,7 +75,8 @@ bool load_device_config(FS* fileSystem, const char* path) {
 	DeviceConfiguration.Username = doc["user"].as<String>();
 	DeviceConfiguration.Password = doc["pass"].as<String>();
 	// Device
-	DeviceConfiguration.ChannelIndex = doc["chanel_index"].as<int>();
+	DeviceConfiguration.ChannelIndex = doc["chanel_index"].as<uint8_t>();
+	DeviceConfiguration.Volume = doc["volume"].as<uint8_t>();
 
 	return true;
 }
@@ -97,6 +98,7 @@ bool save_device_config(FS* fileSystem, const char* path) {
 	doc["pass"] = DeviceConfiguration.Password;
 	// Device
 	doc["chanel_index"] = DeviceConfiguration.ChannelIndex;
+	doc["volume"] = DeviceConfiguration.Volume;
 
 	File file = fileSystem->open(path, "w");
 
@@ -129,6 +131,7 @@ bool set_default_device_config() {
 	DeviceConfiguration.Password = DEAFULT_PASS;
 	// Device
 	DeviceConfiguration.ChannelIndex = DEFAULT_CHANEL_INDEX;
+	DeviceConfiguration.Volume = DEFAULT_VOLUME;
 }
 
 

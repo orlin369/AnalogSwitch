@@ -8,6 +8,14 @@
 	#include "WProgram.h"
 #endif
 
+#ifndef WL_MAC_ADDR_LENGTH
+#define WL_MAC_ADDR_LENGTH 6
+#endif
+
+/** @brief Brand name. */
+#define DEVICE_BRAND "AnalogSwitch"
+
+
 /** @brief Show functions names. */
 #define SHOW_FUNC_NAMES
 
@@ -21,12 +29,39 @@
 
 #define DEFAULT_CHANEL_INDEX 1
 
+#define DEFAULT_VOLUME 50
+
+#pragma endregion
+
+#pragma region STA Configuration
+
+/** @brief Maximum time to connect to local AP. */
+#define TIMEOUT_TO_CONNECT 10
+
+/** @brief Default STA SSID. */
+#define DEFAULT_STA_SSID "YOUR_DEFAULT_WIFI_SSID"
+
+/** @brief Default STA password. */
+#define DEFAULT_STA_PASSWORD "YOUR_DEFAULT_WIFI_PASS"
+
+/** @brief Default enabled DHCP client. */
+#define DEFAULT_ENABLED_DHCP 1
+
+/** @brief Default IP address of the station. */
+#define DEAFULUT_IP IPAddress(192, 168, 1, 4)
+
+/** @brief Default mask of the station. */
+#define DEAFULT_NET_MASK IPAddress(255, 255, 255, 0)
+
+/** @brief Default gateway of the station. */
+#define DEAFULT_GW IPAddress(192, 168, 1, 1)
+
+/** @brief Default DNS of the station. */
+#define DEAFULT_DNS IPAddress(192, 168, 1, 1)
+
 #pragma endregion
 
 #pragma region Debug Terminal Configuration
-
-/** @brief Switch the logging terminal. */
-#define DEBUGLOG SERIALLOG
 
 /** @brief Debug output port. */
 #define DBG_OUTPUT_PORT Serial1 // Serial1 // on D4
@@ -37,6 +72,9 @@
 #ifndef DEBUGLOG
 #define DEBUGLOG(...)
 #endif // !DEBUGLOG
+
+/** @brief Firmware version string. */
+#define ESP_FW_VERSION 1
 
 #pragma endregion
 
