@@ -32,17 +32,20 @@
 
 #include <Wire.h>
 
+
 #include <WiFi.h>
 
 #include <WiFiAP.h>
+
 
 #include "FS.h"
 
 #include "SPIFFS.h"
 
-// #include <ESPmDNS.h>
-
 #include <ArduinoOTA.h>
+
+
+#include <IRremote.h>
 
 #pragma endregion
 
@@ -204,9 +207,19 @@ String SSID_AP_g = "TEST_AP_NAME";
  */
 String PASS_AP_g = "12345678";
 
+bool LearnIRCommandFlag_g;
+
+bool ReceiveIRCommand_g;
+
 #pragma endregion
 
 #pragma region Prototypes
+
+/**
+ * @brief Configure the file system.
+ * 
+ */
+void setup_fs();
 
 /**
  * @brief Setup the variables objects.
@@ -233,10 +246,35 @@ void setup_pot();
 void setup_display();
 
 /**
+ * @brief Setup the WiFi.
+ * 
+ */
+void setup_wifi();
+
+/**
+ * @brief Setup the Arduino OTA.
+ * 
+ */
+void setup_arduino_ota();
+
+
+/**
  * @brief Update the button status.
  * 
  */
 void update_buttons();
+
+/**
+ * @brief Update IR receiver.
+ * 
+ */
+void update_ir_receiver();
+
+/**
+ * @brief Update learn procedure.
+ * 
+ */
+void update_learn_procedure();
 
 /**
  * @brief Check for chanel changes.
@@ -265,16 +303,16 @@ void update_volume();
 void set_volume(uint8_t  volume);
 
 /**
- * @brief Update the status LED.
- * 
- */
-void update_status_led();
-
-/**
  * @brief Update display.
  * 
  */
 void update_display();
+
+/**
+ * @brief Update the status LED.
+ * 
+ */
+void update_status_led();
 
 #pragma endregion
 
@@ -305,21 +343,27 @@ void setup()
     setup_display();
 
     setup_wifi();
+
+    setup_arduino_ota();
 }
 
 void loop()
 {
     update_buttons();
 
+    update_ir_receiver();
+
+    update_learn_procedure();
+
     update_channel();
 
     update_volume();
 
-    update_status_led();
-
     update_display();
 
     ArduinoOTA.handle();
+
+    update_status_led();
 }
 
 #pragma region Functions
@@ -397,6 +441,8 @@ void setup_variables() {
     CurrentTime_g = 0;
     
     // User IO.
+    LearnIRCommandFlag_g = false;
+    ReceiveIRCommand_g = false;
     ChannelIndex_g = DeviceConfiguration.ChannelIndex;
     LastChannelIndex_g = 255;
     LastVolAct_g = VolumeAction_t::Nothing;
@@ -409,6 +455,9 @@ void setup_variables() {
     // Wi-Fi setup.    
     SSID_STA_g = NetworkConfiguration.SSID.c_str();
     PASS_STA_g = NetworkConfiguration.Password.c_str();
+
+    //
+
 }
 
 /**
@@ -441,6 +490,52 @@ void setup_io() {
     BtnLearn_g.begin();
     BtnVolDn_g.begin();
     BtnVolUp_g.begin();
+
+    Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
+    // Start the receiver, enable feedback LED,
+    // take LED feedback pin from the internal boards definition.
+    IrReceiver.begin(PIN_IR, ENABLE_LED_FEEDBACK);
+}
+
+/**
+ * @brief Setup the potentiometer.
+ * 
+ */
+void setup_pot() {
+#ifdef SHOW_FUNC_NAMES
+	DEBUGLOG("\r\n");
+	DEBUGLOG(__PRETTY_FUNCTION__);
+	DEBUGLOG("\r\n");
+#endif // SHOW_FUNC_NAMES
+
+    Pot_g.init();
+    set_volume(VolumeValue_g);
+}
+
+/**
+ * @brief Setup the display.
+ * 
+ */
+void setup_display() {
+#ifdef SHOW_FUNC_NAMES
+	DEBUGLOG("\r\n");
+	DEBUGLOG(__PRETTY_FUNCTION__);
+	DEBUGLOG("\r\n");
+#endif // SHOW_FUNC_NAMES
+    
+    // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+    if(!Display_g.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
+    {
+        DEBUGLOG("SSD1306 allocation failed");
+        for(;;); // Don't proceed, loop forever
+    }
+    
+    // Show initial display buffer contents on the screen --
+    // the library initializes this with an Adafruit splash screen.
+    Display_g.display();
+    
+    // Clear the buffer
+    Display_g.clearDisplay();
 }
 
 /**
@@ -495,6 +590,10 @@ void setup_wifi() {
     }
 }
 
+/**
+ * @brief Setup the Arduino OTA.
+ * 
+ */
 void setup_arduino_ota() {
 #ifdef SHOW_FUNC_NAMES
 	DEBUGLOG("\r\n");
@@ -544,46 +643,6 @@ void setup_arduino_ota() {
 	ArduinoOTA.begin();
 }
 
-/**
- * @brief Setup the potentiometer.
- * 
- */
-void setup_pot() {
-#ifdef SHOW_FUNC_NAMES
-	DEBUGLOG("\r\n");
-	DEBUGLOG(__PRETTY_FUNCTION__);
-	DEBUGLOG("\r\n");
-#endif // SHOW_FUNC_NAMES
-
-    Pot_g.init();
-    set_volume(VolumeValue_g);
-}
-
-/**
- * @brief Setup the display.
- * 
- */
-void setup_display() {
-#ifdef SHOW_FUNC_NAMES
-	DEBUGLOG("\r\n");
-	DEBUGLOG(__PRETTY_FUNCTION__);
-	DEBUGLOG("\r\n");
-#endif // SHOW_FUNC_NAMES
-    
-    // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-    if(!Display_g.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
-    {
-        DEBUGLOG("SSD1306 allocation failed");
-        for(;;); // Don't proceed, loop forever
-    }
-    
-    // Show initial display buffer contents on the screen --
-    // the library initializes this with an Adafruit splash screen.
-    Display_g.display();
-    
-    // Clear the buffer
-    Display_g.clearDisplay();
-}
 
 /**
  * @brief Update the button status.
@@ -613,7 +672,10 @@ void update_buttons()
     }
     else if (BtnLearn_g.pressed())
     {
-        DEBUGLOG("Learn clicked\r\n");
+        if (LearnIRCommandFlag_g == false)
+        {
+            LearnIRCommandFlag_g = true;
+        }
     }
     else if (BtnVolDn_g.pressed())
     {
@@ -644,6 +706,106 @@ void update_buttons()
     DisplayFlag_g = 
         (VolAct_g != VolumeAction_t::Nothing) ||
         (ChannelIndex_g != LastChannelIndex_g);
+}
+
+/**
+ * @brief Update IR receiver.
+ * 
+ */
+void update_ir_receiver()
+{
+    if (IrReceiver.decode())
+    {
+        // Grab an IR code
+        // Check if the buffer overflowed
+        if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_WAS_OVERFLOW)
+        {
+            Serial.println("IR code too long. Edit IRremoteInt.h and increase RAW_BUFFER_LENGTH");
+        }
+        else
+        {
+            Serial.println();                               // 2 blank lines between entries
+            Serial.println();
+            IrReceiver.printIRResultShort(&Serial);
+            Serial.println();
+            Serial.println(F("Raw result in internal ticks (50 us) - with leading gap"));
+            IrReceiver.printIRResultRawFormatted(&Serial, false); // Output the results in RAW format
+            Serial.println(F("Raw result in microseconds - with leading gap"));
+            IrReceiver.printIRResultRawFormatted(&Serial, true);  // Output the results in RAW format
+            Serial.println();                               // blank line between entries
+            Serial.print(F("Result as internal ticks (50 us) array - compensated with MARK_EXCESS_MICROS="));
+            Serial.println(MARK_EXCESS_MICROS);
+            IrReceiver.compensateAndPrintIRResultAsCArray(&Serial, false); // Output the results as uint8_t source code array of ticks
+            Serial.print(F("Result as microseconds array - compensated with MARK_EXCESS_MICROS="));
+            Serial.println(MARK_EXCESS_MICROS);
+            IrReceiver.compensateAndPrintIRResultAsCArray(&Serial, true); // Output the results as uint16_t source code array of micros
+            IrReceiver.printIRResultAsCVariables(&Serial);  // Output address and data as source code variables
+
+            IrReceiver.compensateAndPrintIRResultAsPronto(&Serial);
+
+            Serial.print(F("Decoded protocol: "));
+            Serial.print(getProtocolString(IrReceiver.decodedIRData.protocol));
+            Serial.print(F("Decoded raw data: "));
+            Serial.print(IrReceiver.decodedIRData.decodedRawData, HEX);
+            Serial.print(F(", decoded address: "));
+            Serial.print(IrReceiver.decodedIRData.address, HEX);
+            Serial.print(F(", decoded command: "));
+            Serial.println(IrReceiver.decodedIRData.command, HEX);
+
+            // TODO: Store last received IR data. 
+            // - If no learning button is pressed if it is known do action.
+            // - If learning button is pressed see which button is pressed and store IR data for the given action.
+
+            if (ReceiveIRCommand_g == false)
+            {
+                ReceiveIRCommand_g = true;
+            }
+
+        }
+        IrReceiver.resume();                            // Prepare for the next value
+    }
+}
+
+/**
+ * @brief Update learn procedure.
+ * 
+ */
+void update_learn_procedure()
+{
+    if ((LearnIRCommandFlag_g == true) && (ReceiveIRCommand_g == true))
+    {
+        // Clear the learn flag.
+        if (LearnIRCommandFlag_g == true)
+        {
+            LearnIRCommandFlag_g = false;
+        }
+
+        // Clear the received flag.
+        if (ReceiveIRCommand_g == true)
+        {
+            ReceiveIRCommand_g = false;
+        }
+
+        if (ChannelIndex_g == 1)
+        {
+            // Save IR command for chanel index 1.
+        }
+        else if (ChannelIndex_g == 2)
+        {
+            // Save IR command for chanel index 2.
+        }
+        else if (ChannelIndex_g == 3)
+        {
+            // Save IR command for chanel index 3.
+        }
+        else if (ChannelIndex_g == 4)
+        {
+            // Save IR command for chanel index 4.
+        }
+
+        // Bypass button chanel action.
+        ChannelIndex_g = LastChannelIndex_g;
+    }
 }
 
 /**
@@ -762,34 +924,6 @@ void set_volume(uint8_t  volume) {
 }
 
 /**
- * @brief Update the status LED.
- * 
- */
-void update_status_led()
-{
-    CurrentTime_g = millis();
-    
-    if (CurrentTime_g - PreviousTime_g >= BLINK_INTERVAL)
-    {
-        // Save the last time you blinked the LED.
-        PreviousTime_g = CurrentTime_g;
-        
-        // If the LED is off turn it on and vice-versa:
-        if (StatusLEDState_g == LOW)
-        {
-            StatusLEDState_g = HIGH;
-        }
-        else
-        {
-            StatusLEDState_g = LOW;
-        }
-        
-        // Set the LED with the StatusLEDState_g of the variable:
-        digitalWrite(PIN_LED_STATUS, StatusLEDState_g);
-  }
-}
-
-/**
  * @brief Update display.
  * 
  */
@@ -856,6 +990,34 @@ void update_display()
     Display_g.drawRect(RECT_X_VOL, RECT_Y_VOL, MAX_VOL_VAL,   RECT_H_VOL, SSD1306_WHITE);
 
     Display_g.display();
+}
+
+/**
+ * @brief Update the status LED.
+ * 
+ */
+void update_status_led()
+{
+    CurrentTime_g = millis();
+    
+    if (CurrentTime_g - PreviousTime_g >= BLINK_INTERVAL)
+    {
+        // Save the last time you blinked the LED.
+        PreviousTime_g = CurrentTime_g;
+        
+        // If the LED is off turn it on and vice-versa:
+        if (StatusLEDState_g == LOW)
+        {
+            StatusLEDState_g = HIGH;
+        }
+        else
+        {
+            StatusLEDState_g = LOW;
+        }
+        
+        // Set the LED with the StatusLEDState_g of the variable:
+        digitalWrite(PIN_LED_STATUS, StatusLEDState_g);
+  }
 }
 
 #pragma endregion
