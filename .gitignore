@@ -1,3 +1,8 @@
+
+# Created by https://www.toptal.com/developers/gitignore/api/c++,vscode
+# Edit at https://www.toptal.com/developers/gitignore?templates=c++,vscode
+
+### C++ ###
 # Prerequisites
 *.d
 
@@ -10,6 +15,12 @@
 # Precompiled Headers
 *.gch
 *.pch
+
+# Linker files
+*.ilk
+
+# Debugger Files
+*.pdb
 
 # Compiled Dynamic libraries
 *.so
@@ -30,3 +41,13 @@
 *.exe
 *.out
 *.app
+
+### vscode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# End of https://www.toptal.com/developers/gitignore/api/c++,vscode
