@@ -51,8 +51,16 @@
 
 #pragma region Device Configuration
 
+/**
+ * @brief Default chanel index.
+ * 
+ */
 #define DEFAULT_CHANEL_INDEX 1
 
+/**
+ * @brief Default volume value.
+ * 
+ */
 #define DEFAULT_VOLUME 50
 
 #pragma endregion
