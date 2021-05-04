@@ -15,49 +15,45 @@
 /** @brief Brand name. */
 #define DEVICE_BRAND "AnalogSwitch"
 
-
 /** @brief Show functions names. */
 #define SHOW_FUNC_NAMES
 
+/**
+ * @brief Enable LCD
+ * 
+ */
+#define ENABLE_DISPLAY
+
+/**
+ * @brief Enable status LED.
+ * 
+ */
+#define ENABLE_STATUS_LED
+
+/**
+ * @brief Enable IR interface.
+ * 
+ */
+#define ENABLE_IR
+
+/**
+ * @brief Enable Wi-Fi interface.
+ * 
+ */
+#define ENABLE_WIFI
+
+/**
+ * @brief Enable Arduino OTA updates.
+ * 
+ */
+#define ENABLE_ARDUINO_OTA
+
+
 #pragma region Device Configuration
-
-/** @brief Default STA SSID. */
-#define DEAFULT_USER "admin"
-
-/** @brief Default STA password. */
-#define DEAFULT_PASS "admin"
 
 #define DEFAULT_CHANEL_INDEX 1
 
 #define DEFAULT_VOLUME 50
-
-#pragma endregion
-
-#pragma region STA Configuration
-
-/** @brief Maximum time to connect to local AP. */
-#define TIMEOUT_TO_CONNECT 10
-
-/** @brief Default STA SSID. */
-#define DEFAULT_STA_SSID "YOUR_DEFAULT_WIFI_SSID"
-
-/** @brief Default STA password. */
-#define DEFAULT_STA_PASSWORD "YOUR_DEFAULT_WIFI_PASS"
-
-/** @brief Default enabled DHCP client. */
-#define DEFAULT_ENABLED_DHCP 1
-
-/** @brief Default IP address of the station. */
-#define DEAFULUT_IP IPAddress(192, 168, 1, 4)
-
-/** @brief Default mask of the station. */
-#define DEAFULT_NET_MASK IPAddress(255, 255, 255, 0)
-
-/** @brief Default gateway of the station. */
-#define DEAFULT_GW IPAddress(192, 168, 1, 1)
-
-/** @brief Default DNS of the station. */
-#define DEAFULT_DNS IPAddress(192, 168, 1, 1)
 
 #pragma endregion
 
@@ -75,16 +71,6 @@
 
 /** @brief Firmware version string. */
 #define ESP_FW_VERSION 1
-
-#pragma endregion
-
-#pragma region Status LED
-
-/**
- * @brief Status LED blink interval.
- * 
- */
-#define BLINK_INTERVAL 1000
 
 #pragma endregion
 
@@ -184,21 +170,25 @@
  */
 #define PIN_REL_IN4 33
 
+#pragma endregion
+
+#pragma region IR
+
+#ifdef ENABLE_IR
+
 /**
  * @brief Pin IR receiver.
  * 
  */
 #define PIN_IR 18
 
-/**
- * @brief Pin status LED.
- * 
- */
-#define PIN_LED_STATUS 26
+#endif
 
 #pragma endregion
 
 #pragma region Display Params
+
+#ifdef ENABLE_DISPLAY
 
 /**
  * @brief Reset pin # (or -1 if sharing Arduino reset pin).
@@ -332,6 +322,66 @@
  * 
  */
 #define TX_Y_VOL (RECT_Y_VOL + 2)
+
+#endif
+
+#pragma endregion
+
+#pragma region STA Configuration
+
+/** @brief Maximum time to connect to local AP. */
+#define TIMEOUT_TO_CONNECT 10
+
+/** @brief Default STA SSID. */
+#define DEFAULT_STA_SSID "YOUR_DEFAULT_WIFI_SSID"
+
+/** @brief Default STA password. */
+#define DEFAULT_STA_PASSWORD "YOUR_DEFAULT_WIFI_PASS"
+
+/** @brief Default enabled DHCP client. */
+#define DEFAULT_ENABLED_DHCP 1
+
+/** @brief Default IP address of the station. */
+#define DEAFULUT_IP IPAddress(192, 168, 1, 4)
+
+/** @brief Default mask of the station. */
+#define DEAFULT_NET_MASK IPAddress(255, 255, 255, 0)
+
+/** @brief Default gateway of the station. */
+#define DEAFULT_GW IPAddress(192, 168, 1, 1)
+
+/** @brief Default DNS of the station. */
+#define DEAFULT_DNS IPAddress(192, 168, 1, 1)
+
+#pragma endregion // STA Configuration
+
+#pragma region AP Configuration
+
+/** @brief Default STA SSID. */
+#define DEAFULT_USER "admin"
+
+/** @brief Default STA password. */
+#define DEAFULT_PASS "admin"
+
+#pragma endregion
+
+#pragma region Status LED
+
+#ifdef ENABLE_STATUS_LED
+
+/**
+ * @brief Status LED blink interval.
+ * 
+ */
+#define BLINK_INTERVAL 1000
+
+/**
+ * @brief Pin status LED.
+ * 
+ */
+#define PIN_LED_STATUS 26
+
+#endif
 
 #pragma endregion
 
